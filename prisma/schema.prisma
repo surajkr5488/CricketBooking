@@ -1,0 +1,54 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  password     String
+  refreshToken String?   @map("refresh_token")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  bookings     Booking[]
+
+  @@map("users")
+}
+
+model Pitch {
+  id           String    @id @default(uuid())
+  name         String
+  location     String
+  pricePerHour Float     @map("price_per_hour")
+  bookings     Booking[]
+
+  @@map("pitches")
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  userId      String        @map("user_id")
+  pitchId     String        @map("pitch_id")
+  slotId      String        @map("slot_id")
+  bookingDate DateTime      @map("booking_date") @db.Date
+  status      BookingStatus @default(CONFIRMED)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id])
+  pitch Pitch @relation(fields: [pitchId], references: [id])
+
+  // Prevent same slot being double-booked on same date
+  @@unique([slotId, bookingDate])
+  @@map("bookings")
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
